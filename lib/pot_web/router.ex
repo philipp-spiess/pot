@@ -27,6 +27,12 @@ defmodule PotWeb.Router do
     live "/items/:id/show/edit", ItemLive.Show, :edit
   end
 
+  scope "/pot", PotWeb do
+    pipe_through :browser
+
+    pot("/items", ItemsPot)
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", PotWeb do
   #   pipe_through :api

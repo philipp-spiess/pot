@@ -9,12 +9,32 @@
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
-      <%= Vite.vite_client() %>
-      <%= Vite.react_refresh_snippet() %>
-      <%= Vite.vite_snippet("src/main.tsx") %>
     </script>
+    <script type="module">
+      import RefreshRuntime from 'http://localhost:5173/@react-refresh'
+      RefreshRuntime.injectIntoGlobalHook(window)
+      window.$RefreshReg$ = () => {}
+      window.$RefreshSig$ = () => (type) => type
+      window.__vite_plugin_react_preamble_installed__ = true
+    </script>
+    <%= if is_prod() do %>
+      <!-- prod -->
+      <link phx-track-static rel="stylesheet" href="{Vite.Manifest.main_css()}" />
+      <script type="module" crossorigin defer phx-track-static src="{Vite.Manifest.main_js()}">
+      </script>
+      <link rel="modulepreload" href="{Vite.Manifest.vendor_js()}" />
+      <!-- end prod -->
+    <% else %>
+      <!-- dev/test -->
+      <script type="module" src="http://localhost:5173/@vite/client">
+      </script>
+      <script type="module" src="http://localhost:5173/src/main.tsx">
+      </script>
+      <!-- end dev -->
+    <% end %>
   </head>
   <body class="bg-white antialiased">
+    <div id="app"></div>
     <%= @inner_content %>
   </body>
 </html>
