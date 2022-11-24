@@ -17,7 +17,8 @@ defmodule PotWeb.Router do
   scope "/", PotWeb do
     pipe_through :browser
 
-    pot "/", ItemsPot 
+    pot "/", ItemsPot
+    pot "/admin", AdminPot
 
     live "/items", ItemLive.Index, :index
     live "/items/new", ItemLive.Index, :new

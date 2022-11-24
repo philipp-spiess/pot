@@ -10,7 +10,7 @@ Render React components from Elixir. Remix but with an Elixir backend. I'll writ
 - [ ] Route params
 - [ ] `useTransition`
 - [ ] Styling
-- [ ] Add the concept of a controller (Pot?) that defines the React component, props, and stuff.
+- [x] Add the concept of a controller (Pot?) that defines the React component, props, and stuff.
   - [ ] How to define custom headers
   - [ ] How to 404 (also done in loader in Remix)
 - [ ] Layout components
@@ -18,6 +18,7 @@ Render React components from Elixir. Remix but with an Elixir backend. I'll writ
 - [ ] Static string
 - [ ] Make it deployable
 - [ ] Layout nesting
+- [ ] SSR with a JS runtime
 
 - https://github.com/remix-run/remix/blob/main/packages/remix-react/index.tsx
 - https://github.com/remix-run/remix/blob/main/packages/remix-react/components.tsx#L86-L222

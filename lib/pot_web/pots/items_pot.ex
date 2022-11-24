@@ -1,8 +1,30 @@
 defmodule PotWeb.ItemsPot do
-  # use PotWeb, :live_view
+  use Pot.Controller
 
   # alias Pot.Todo
   # alias Pot.Todo.Item
+
+  def loader_data(_conn, _params) do
+    Process.sleep(2000)
+
+    items =
+      Pot.Todo.list_items()
+      |> Enum.map(fn item ->
+        %{
+          "id" => item.id,
+          "done" => item.done,
+          "text" => item.text
+          # "insertedAt" => item.inserted_at,
+          # "updatedAt" => item.updated_at
+        }
+      end)
+
+    json(%{"items" => items})
+  end
+
+  def entrypoint(_conn, _params) do
+    ~j"item"
+  end
 
   # @impl true
   # def mount(_params, _session, socket) do
