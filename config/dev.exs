@@ -14,8 +14,7 @@ config :pot, Pot.Repo,
 # debugging and code reloading.
 #
 # The watchers configuration can be used to run external
-# watchers to your application. For example, we use it
-# with esbuild to bundle .js and .css sources.
+# watchers to your application.
 config :pot, PotWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
@@ -25,8 +24,8 @@ config :pot, PotWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "MEEpJMXRa59u5gjjJPILK+1pr4LgsgxBvoVHmi8XJ7lkzEjDZhvuy7QX2zT/fBre",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}
+    tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]},
+    pnpm: ["dev", cd: Path.expand("../assets", __DIR__)]
   ]
 
 # ## SSL Support
