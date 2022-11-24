@@ -1,19 +1,23 @@
 # Pot
 
-To start your Phoenix server:
+Render React components from Elixir. Remix but with an Elixir backend. I'll write more, one day...
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.setup`
-  * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Todo
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+- [x] Data (`useLoaderData`)
+- [ ] <Link> and route transitions
+- [ ] Actions (<Form>, `useSubmit`)
+- [ ] Route params
+- [ ] `useTransition`
+- [ ] Styling
+- [ ] Add the concept of a controller (Pot?) that defines the React component, props, and stuff.
+  - [ ] How to define custom headers
+  - [ ] How to 404 (also done in loader in Remix)
+- [ ] Layout components
+- [ ] Render .heex layout
+- [ ] Static string
+- [ ] Make it deployable
+- [ ] Layout nesting
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
-## Learn more
-
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+- https://github.com/remix-run/remix/blob/main/packages/remix-react/index.tsx
+- https://github.com/remix-run/remix/blob/main/packages/remix-react/components.tsx#L86-L222

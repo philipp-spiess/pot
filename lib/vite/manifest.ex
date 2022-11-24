@@ -76,9 +76,9 @@ defmodule Vite do
     Sample content for the manifest:
     `
     {
-      "src/main.tsx": {
+      "src/pot/init.tsx": {
         "file": "assets/main.046c02cc.js",
-        "src": "src/main.tsx",
+        "src": "src/pot/init.tsx",
         "isEntry": true,
         "imports": [
           "_vendor.ef08aed3.js"
@@ -92,7 +92,7 @@ defmodule Vite do
     `
     """
     # specified in vite.config.js in build.rollupOptions.input
-    @main_file "src/main.tsx"
+    @main_file "src/pot/init.tsx"
 
     @spec read() :: map()
     def read() do

@@ -1,0 +1,21 @@
+{
+  "src/pot/init.tsx": {
+    "file": "assets/main.7a994bc3.js",
+    "src": "src/pot/init.tsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "src/entrypoints/item.tsx",
+      "src/entrypoints/deep/nested/very/deep/thing.tsx"
+    ]
+  },
+  "src/entrypoints/item.tsx": {
+    "file": "assets/item.16d7ee8e.js",
+    "src": "src/entrypoints/item.tsx",
+    "isDynamicEntry": true
+  },
+  "src/entrypoints/deep/nested/very/deep/thing.tsx": {
+    "file": "assets/thing.7cf28676.js",
+    "src": "src/entrypoints/deep/nested/very/deep/thing.tsx",
+    "isDynamicEntry": true
+  }
+}

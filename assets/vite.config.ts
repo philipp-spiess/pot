@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
       // overwrite default .html entry
       input: {
-        main: "src/main.tsx",
+        main: "src/pot/init.tsx",
       },
     },
   },
