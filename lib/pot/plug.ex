@@ -4,23 +4,27 @@ defmodule Pot.Plug do
   def init(options), do: options
 
   def call(%Plug.Conn{params: %{"_navigation" => _navigation}} = conn, opts) do
-    IO.inspect(conn)
     entrypoint = apply(opts, :entrypoint, [conn, conn.params])
 
-    {:ok, conn} =
-      conn
-      |> put_resp_content_type("text/event-stream")
-      |> send_chunked(200)
-      |> chunk(sse_event("preamble", Phoenix.json_library().encode!(%{entrypoint: entrypoint})))
+    navigation_preamble =
+      Phoenix.json_library().encode!(%{
+        entrypoint: entrypoint,
+        entrypointModule: module_path_for_entrypoint(entrypoint)
+      })
 
-    loader_data = apply(opts, :loader_data, [conn, conn.params])
-    {:ok, conn} = conn |> chunk(sse_event("loader_data", loader_data))
+    conn =
+      conn
+      |> put_resp_header("x-pot-preamble", navigation_preamble)
+      |> put_resp_content_type("application/json")
+      |> send_chunked(200)
+
+    loader_data = get_loader_data(opts, conn)
+    {:ok, conn} = conn |> chunk(loader_data)
 
     conn
   end
 
   def call(conn, opts) do
-    IO.inspect(conn)
     entrypoint = apply(opts, :entrypoint, [conn, conn.params])
 
     {:ok, conn} =
@@ -29,7 +33,7 @@ defmodule Pot.Plug do
       |> send_chunked(200)
       |> chunk(preamble(entrypoint))
 
-    loader_data = apply(opts, :loader_data, [conn, conn.params])
+    loader_data = get_loader_data(opts, conn)
     {:ok, conn} = conn |> chunk("#{js_payload("window.__provideLoaderData(#{loader_data});")}")
 
     {:ok, conn} = conn |> chunk("</html>")
@@ -57,7 +61,7 @@ defmodule Pot.Plug do
     <!-- dev/test -->
     <link rel="modulepreload" href="http://localhost:5173/@vite/client" />
     <link rel="modulepreload" href="http://localhost:5173/src/pot/init.tsx" />
-    <link rel="modulepreload" href="http://localhost:5173/src/entrypoints/#{entrypoint}.tsx" />
+    <link rel="modulepreload" href="#{module_path_for_entrypoint(entrypoint)}" />
     <script type="module" src="http://localhost:5173/@vite/client" async></script>
     <script type="module" src="http://localhost:5173/src/pot/init.tsx" async></script>
     <!-- end dev -->
@@ -68,6 +72,11 @@ defmodule Pot.Plug do
     #{js_payload("window.__loadEntrypoint(\"#{entrypoint}\");")}
     </script>
     """
+  end
+
+  defp module_path_for_entrypoint(entrypoint) do
+    # TODO: Must be different in production (need to look into the Vite manifest)
+    "http://localhost:5173/src/entrypoints/#{entrypoint}.tsx"
   end
 
   defp js_payload(javascript) do
@@ -83,12 +92,13 @@ defmodule Pot.Plug do
     """
   end
 
-  defp sse_event(event, data) do
-    ~s"""
-    event: #{event}
-    data: #{data}
+  defp get_loader_data(view, conn) do
+    loader_data = apply(view, :loader_data, [conn, conn.params])
 
-
-    """
+    if loader_data == nil do
+      "{}"
+    else
+      loader_data
+    end
   end
 end
