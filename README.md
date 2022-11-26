@@ -5,7 +5,10 @@ Render React components from Elixir. Remix but with an Elixir backend. I'll writ
 ## Running the demo
 
 - `asdf install`
-- `pnpm install`
+- `pushd assets && pnpm install && popd`
+- Ensure postgres is started
+- `mix ecto.create`
+- `mix ecto.migrate`
 - `mix phx.server`
 
 ## Todo

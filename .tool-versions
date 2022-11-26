@@ -1,1 +1,5 @@
-pnpm 7.15.0
+pnpm 7.17.0
+nodejs 19.1.0
+elixir 1.14.2
+erlang 25.1.1
+postgres 15.1
