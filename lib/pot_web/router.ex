@@ -17,14 +17,15 @@ defmodule PotWeb.Router do
   scope "/", PotWeb do
     pipe_through :browser
 
-    pot("/", ItemsPot)
-    pot("/admin", AdminPot)
-    pot("/fast", FastPot)
+    # Pot routes
+    pot "/", ItemsPot
+    pot "/admin", AdminPot
+    pot "/fast", FastPot
 
+    # LiveView routes
     live "/items", ItemLive.Index, :index
     live "/items/new", ItemLive.Index, :new
     live "/items/:id/edit", ItemLive.Index, :edit
-
     live "/items/:id", ItemLive.Show, :show
     live "/items/:id/show/edit", ItemLive.Show, :edit
   end
