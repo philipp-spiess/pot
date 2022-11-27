@@ -18,6 +18,7 @@ defmodule Pot.Plug do
 
     {:ok, conn} =
       conn
+      |> csrf_token()
       |> put_resp_content_type("text/html")
       |> send_chunked(200)
       |> chunk(preamble(entrypoint))
@@ -28,8 +29,7 @@ defmodule Pot.Plug do
     conn
   end
 
-  defp handle_navigation(conn, opts, route) do
-    IO.inspect(route)
+  defp handle_navigation(conn, opts, _route) do
     entrypoint = apply(opts, :entrypoint, [conn, conn.params])
 
     navigation_preamble =
@@ -40,6 +40,7 @@ defmodule Pot.Plug do
 
     conn =
       conn
+      |> csrf_token()
       |> put_resp_header("x-pot-preamble", navigation_preamble)
       |> put_resp_content_type("application/json")
       |> send_chunked(200)
@@ -53,28 +54,29 @@ defmodule Pot.Plug do
   defp preamble(entrypoint) do
     ~s"""
     <html><head>
-    <!-- <%= if is_prod() do %> -->
-    <!-- prod -->
-    <!-- <link phx-track-static rel="stylesheet" href="{Vite.Manifest.main_css()}" /> -->
-    <!-- <script type="module" crossorigin defer phx-track-static src="{Vite.Manifest.main_js()}"></script> -->
-    <!-- <link rel="modulepreload" href="{Vite.Manifest.vendor_js()}" /> -->
-    <!-- end prod -->
-    <!-- <% else %> -->
-    <script type="module" async>
-      import RefreshRuntime from 'http://localhost:5173/@react-refresh'
-      RefreshRuntime.injectIntoGlobalHook(window)
-      window.$RefreshReg$ = () => {}
-      window.$RefreshSig$ = () => (type) => type
-      window.__vite_plugin_react_preamble_installed__ = true
-    </script>
-    <!-- dev/test -->
-    <link rel="modulepreload" href="http://localhost:5173/@vite/client" />
-    <link rel="modulepreload" href="http://localhost:5173/src/pot/init.tsx" />
-    <link rel="modulepreload" href="#{module_path_for_entrypoint(entrypoint)}" />
-    <script type="module" src="http://localhost:5173/@vite/client" async></script>
-    <script type="module" src="http://localhost:5173/src/pot/init.tsx" async></script>
-    <!-- end dev -->
-    <!-- <% end %> -->
+    <meta name="csrf-token" content="#{Plug.CSRFProtection.get_csrf_token()}" />
+    #{if is_prod() do
+      ~s"""
+      <link phx-track-static rel="stylesheet" href="{Vite.Manifest.main_css()}" />
+      <script type="module" crossorigin defer phx-track-static src="{Vite.Manifest.main_js()}"></script>
+      <link rel="modulepreload" href="{Vite.Manifest.vendor_js()}" />
+      """
+    else
+      ~s"""
+      <script type="module" async>
+        import RefreshRuntime from '#{Vite.Dev.url()}@react-refresh'
+        RefreshRuntime.injectIntoGlobalHook(window)
+        window.$RefreshReg$ = () => {}
+        window.$RefreshSig$ = () => (type) => type
+        window.__vite_plugin_react_preamble_installed__ = true
+      </script>
+      <link rel="modulepreload" href="#{Vite.Dev.url()}@vite/client" />
+      <link rel="modulepreload" href="#{Vite.Dev.url()}src/pot/init.tsx" />
+      <link rel="modulepreload" href="#{module_path_for_entrypoint(entrypoint)}" />
+      <script type="module" src="#{Vite.Dev.url()}@vite/client" async></script>
+      <script type="module" src="#{Vite.Dev.url()}src/pot/init.tsx" async></script>
+      """
+    end}
     </head>
     <body>
     <div id="app"></div>
@@ -85,7 +87,7 @@ defmodule Pot.Plug do
 
   defp module_path_for_entrypoint(entrypoint) do
     # TODO: Must be different in production (need to look into the Vite manifest)
-    "http://localhost:5173/src/entrypoints/#{entrypoint}.tsx"
+    "#{Vite.Dev.url()}src/entrypoints/#{entrypoint}.tsx"
   end
 
   defp js_payload(javascript) do
@@ -111,9 +113,16 @@ defmodule Pot.Plug do
     end
   end
 
-  defp maybe_get_session(conn) do
-    Plug.Conn.get_session(conn)
-  rescue
-    _ -> %{}
+  defp env() do
+    Application.get_env(:demo, :environment, :dev)
+  end
+
+  defp is_prod(), do: env() == :prod
+
+  defp csrf_token(conn) do
+    csrf_token = Plug.CSRFProtection.get_csrf_token()
+
+    conn
+    |> put_resp_cookie("csrf-token", csrf_token, sign: false, same_site: "secure")
   end
 end

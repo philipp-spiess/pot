@@ -1,5 +1,5 @@
 import Nav from "../Nav";
-import { useLoaderData } from "../pot/react";
+import { Form, useLoaderData } from "../pot/react";
 interface LoaderData {
   items: Array<{ id: number; done: boolean; text: string }>;
 }
@@ -9,8 +9,12 @@ export default function Item() {
   return (
     <>
       <Nav />
-      <div style={{ fontFamily: "monospace" }}>
-        <input type="text" style={{ fontFamily: "monospace", width: 300 }} />
+      <Form method="post" style={{ fontFamily: "monospace" }}>
+        <input
+          name="text"
+          type="text"
+          style={{ fontFamily: "monospace", width: 300 }}
+        />
         <pre>
           {data.items.map((item) => (
             <div key={item.id}>
@@ -20,7 +24,7 @@ export default function Item() {
             </div>
           ))}
         </pre>
-      </div>
+      </Form>
     </>
   );
 }
