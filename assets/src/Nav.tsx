@@ -19,6 +19,9 @@ export default function Nav() {
           <Link to="/404">404</Link>
         </li>
         <li>
+          <Link to="/redirect">Redirect</Link>
+        </li>
+        <li>
           <Link to="/items">Outside pod 😡</Link>
         </li>
       </ol>

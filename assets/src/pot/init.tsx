@@ -5,6 +5,8 @@ import React from "react";
 import Main from "./Main";
 import { createEntrypoint as createEntrypoint } from "./entrypoint";
 
+import "../../css/app.css";
+
 declare global {
   interface Window {
     __runMe?: Array<() => void>;
