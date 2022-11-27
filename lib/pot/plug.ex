@@ -3,7 +3,33 @@ defmodule Pot.Plug do
 
   def init(options), do: options
 
-  def call(%Plug.Conn{params: %{"_navigation" => _navigation}} = conn, opts) do
+  def call(%Plug.Conn{params: %{"_route" => route}} = conn, opts),
+    do: handle_navigation(conn, opts, route)
+
+  def call(conn, opts) do
+    case get_req_header(conn, "x-pot-route") do
+      [route] -> handle_navigation(conn, opts, route)
+      _ -> handle_initial_load(conn, opts)
+    end
+  end
+
+  defp handle_initial_load(conn, opts) do
+    entrypoint = apply(opts, :entrypoint, [conn, conn.params])
+
+    {:ok, conn} =
+      conn
+      |> put_resp_content_type("text/html")
+      |> send_chunked(200)
+      |> chunk(preamble(entrypoint))
+
+    loader_data = get_loader_data(opts, conn)
+    {:ok, conn} = conn |> chunk("#{js_payload("window.__provideLoaderData(#{loader_data});")}")
+    {:ok, conn} = conn |> chunk("</html>")
+    conn
+  end
+
+  defp handle_navigation(conn, opts, route) do
+    IO.inspect(route)
     entrypoint = apply(opts, :entrypoint, [conn, conn.params])
 
     navigation_preamble =
@@ -20,23 +46,6 @@ defmodule Pot.Plug do
 
     loader_data = get_loader_data(opts, conn)
     {:ok, conn} = conn |> chunk(loader_data)
-
-    conn
-  end
-
-  def call(conn, opts) do
-    entrypoint = apply(opts, :entrypoint, [conn, conn.params])
-
-    {:ok, conn} =
-      conn
-      |> put_resp_content_type("text/html")
-      |> send_chunked(200)
-      |> chunk(preamble(entrypoint))
-
-    loader_data = get_loader_data(opts, conn)
-    {:ok, conn} = conn |> chunk("#{js_payload("window.__provideLoaderData(#{loader_data});")}")
-
-    {:ok, conn} = conn |> chunk("</html>")
 
     conn
   end
@@ -100,5 +109,11 @@ defmodule Pot.Plug do
     else
       loader_data
     end
+  end
+
+  defp maybe_get_session(conn) do
+    Plug.Conn.get_session(conn)
+  rescue
+    _ -> %{}
   end
 end

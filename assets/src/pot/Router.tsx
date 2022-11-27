@@ -32,29 +32,62 @@ async function navigate(
   to: string,
   { history, mutableState }: RouterContextType
 ): Promise<void> {
+  const url = new URL(to, window.location.href);
+
+  // Tag the request so the backend knows this comes from a pot client. We use
+  // a search param for easier caching and a custom header so redirects work
+  // even if they are handled outside of pot routes.
+  //
+  // We include information about the current route so that the backend can
+  // figure out if we can reuse layouts later
+  //
+  // TODO: Find out if we really need the search param.
+  const currentRoute = history.location.pathname;
+  url.searchParams.set("_route", currentRoute);
+  const headers = { "x-pot-route": currentRoute };
+
+  // We need to abort the previous request if another navigation is happening
+  // while the data for the previous one was not fully loaded yet. We later
+  // use isCurrentRequest() after every async boundary to make sure we don't
+  // process data for the wrong route.
+  if (mutableState.abort !== null) {
+    history.replace(to);
+    mutableState.abort.abort();
+  } else {
+    history.push(to);
+  }
+  mutableState.abort = new AbortController();
+  mutableState.lastTo = to;
+  function isCurrentRequest() {
+    return mutableState.lastTo === to;
+  }
+
   try {
-    const url = new URL(to, window.location.href);
-    url.searchParams.set("_navigation", history.location.pathname);
-
-    if (mutableState.abort !== null) {
-      history.replace(to);
-      mutableState.abort.abort();
-    } else {
-      history.push(to);
-    }
-    mutableState.abort = new AbortController();
-    mutableState.lastTo = to;
-
     const response = await fetch(url.toString(), {
       credentials: "same-origin",
       signal: mutableState.abort.signal,
+      redirect: "follow",
+      headers,
     });
+    if (!isCurrentRequest) {
+      return;
+    }
+
+    // We follow redirects in the fetch call but if the call was redirected, we
+    // need to rewrite the history to the new location.
+    if (response.redirected) {
+      history.replace(response.url);
+      const url = new URL(response.url);
+      to = getUrl(url);
+      mutableState.lastTo = to;
+    }
 
     if (response.status !== 200) {
       throw new Error("Failed to navigate");
     }
 
     const rawPreamble = response.headers.get("x-pot-preamble");
+    console.log(rawPreamble);
     if (rawPreamble === null) {
       console.error(`❗️ You're navigating to a non-pot route. This is slow because we have to redirect.
 
@@ -68,19 +101,16 @@ Please use <Link to=\"${to}\" native /> instead.`);
 
     const entrypoint = createEntrypoint(preamble.entrypoint);
     startTransition(() => {
-      if (mutableState.lastTo !== to) {
-        return;
-      }
       window.__rerender && window.__rerender(entrypoint, true, null);
     });
 
     const json = await response.json();
+    if (!isCurrentRequest) {
+      return;
+    }
+
     startTransition(() => {
-      if (mutableState.lastTo !== to) {
-        return;
-      }
       window.__rerender && window.__rerender(entrypoint, false, json);
-      mutableState.abort = null;
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -88,6 +118,11 @@ Please use <Link to=\"${to}\" native /> instead.`);
       return;
     }
     throw error;
+  } finally {
+    if (mutableState.lastTo !== to) {
+      return;
+    }
+    mutableState.abort = null;
   }
 }
 
@@ -158,6 +193,10 @@ export function useHistory(): H.History {
   return routerContext.history;
 }
 
-function getUrl(location: H.Location) {
+function getUrl(location: {
+  pathname: string;
+  search: string;
+  hash: string;
+}): string {
   return `${location.pathname}${location.search}${location.hash}`;
 }

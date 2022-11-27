@@ -17,6 +17,8 @@ defmodule PotWeb.Router do
   scope "/", PotWeb do
     pipe_through :browser
 
+    get "/redirect", RedirectController, :index
+
     # Pot routes
     pot "/", ItemsPot
     pot "/admin", AdminPot

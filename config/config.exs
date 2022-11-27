@@ -34,7 +34,7 @@ config :tailwind,
   version: "3.1.8",
   default: [
     args: ~w(
-      --config=tailwind.config.js
+      --config=tailwind.config.cjs
       --input=css/app.css
       --output=../priv/static/assets/app.css
     ),
