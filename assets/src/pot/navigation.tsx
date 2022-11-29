@@ -27,7 +27,9 @@ export async function navigate(
   // figure out if we can reuse layouts later
   const currentRoute = history.location.pathname;
   url.searchParams.set("_route", currentRoute);
-  const headers = { "x-pot-route": currentRoute };
+  const headers = {
+    "x-pot-route": currentRoute,
+  };
 
   // We need to abort the previous request if another navigation is happening
   // while the data for the previous one was not fully loaded yet. We later

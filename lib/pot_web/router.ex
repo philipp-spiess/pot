@@ -10,10 +10,6 @@ defmodule PotWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", PotWeb do
     pipe_through :browser
 
@@ -31,11 +27,6 @@ defmodule PotWeb.Router do
     live "/items/:id", ItemLive.Show, :show
     live "/items/:id/show/edit", ItemLive.Show, :edit
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", PotWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:pot, :dev_routes) do
