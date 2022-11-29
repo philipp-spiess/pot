@@ -16,21 +16,27 @@ Render React components from Elixir. Remix but with an Elixir backend. I'll writ
 - [x] Data (`useLoaderData`)
 - [x] <Link> and route transitions
 - [x] Start vite with phx automatically
-- [ ] Actions (<Form>, `useSubmit`)
-- [ ] Route params
-- [ ] `useTransition`
-- [ ] Styling
+- [ ] Actions
+  - [x] <Form>
+  - [ ] [`useSubmit`](https://remix.run/docs/en/v1/api/remix#usesubmit)
+- [ ] [`useTransition`](https://remix.run/docs/en/v1/api/remix#usetransition)
+- [x] Styling
 - [x] Add the concept of a controller (Pot?) that defines the React component, props, and stuff.
   - [ ] How to define custom headers
   - [ ] How to 404 (also done in loader in Remix)
-- [ ] Layout components
+- [ ] Layout component trees
+  - [ ] `layout Pot` in router
+  - [ ] `not_found Pot` in router
+  - [ ] `loader Pot` in router
 - [ ] Robust error handling during navigations
-- [ ] Render .heex layout
-- [ ] Static string
-- [ ] Make it deployable
+- [ ] Render `~H"""` layouts and add server-rendered HTML support.
+- [ ] Make it deployable (properly in prod)
+  - [ ] Fix Vite setup
+  - [ ] Load entrypoint modules from manifest
 - [ ] Layout nesting
-  - [ ] How to only load layout data when you need it?
-- [ ] SSR with a JS runtime
+  - [ ] How to only load layout data when you need it? -> Compute a route key that the backend can diff against the new route key and include layouts for the necessary stuff
+- [ ] SSR for initial loads with a JS runtime
+- [ ] Fix CSRF token issue
 - [ ] [Move package.json to root](https://sourcegraph.com/search?q=context:global+type:path+file:package.json%24+repo:has.path%28mix.exs%29&patternType=standard&sm=1) and colocate js with ex?
 
 ## Long-term ideas

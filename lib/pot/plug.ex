@@ -1,20 +1,35 @@
 defmodule Pot.Plug do
   import Plug.Conn
 
-  def init(options), do: options
+  def init(pot), do: pot
 
-  def call(%Plug.Conn{params: %{"_route" => route}} = conn, opts),
-    do: handle_navigation(conn, opts, route)
+  def call(%Plug.Conn{method: "POST"} = conn, pot), do: handle_action(conn, pot)
 
-  def call(conn, opts) do
+  def call(%Plug.Conn{params: %{"_route" => route}} = conn, pot),
+    do: handle_navigation(conn, pot, route)
+
+  def call(conn, pot) do
     case get_req_header(conn, "x-pot-route") do
-      [route] -> handle_navigation(conn, opts, route)
-      _ -> handle_initial_load(conn, opts)
+      [route] -> handle_navigation(conn, pot, route)
+      _ -> handle_initial_load(conn, pot)
     end
   end
 
-  defp handle_initial_load(conn, opts) do
-    entrypoint = apply(opts, :entrypoint, [conn, conn.params])
+  defp handle_action(conn, pot) do
+    # Actions run their data loaders eagerly
+    loader_data = apply(pot, :action, [conn, conn.params])
+
+    case get_req_header(conn, "x-pot-route") do
+      [route] -> handle_navigation(conn, pot, route, fn -> loader_data end)
+      _ -> handle_initial_load(conn, pot, fn -> loader_data end)
+    end
+  end
+
+  defp handle_initial_load(conn, pot),
+    do: handle_initial_load(conn, pot, fn -> get_loader_data(pot, conn) end)
+
+  defp handle_initial_load(conn, pot, loader) do
+    entrypoint = apply(pot, :entrypoint, [conn, conn.params])
 
     {:ok, conn} =
       conn
@@ -23,14 +38,17 @@ defmodule Pot.Plug do
       |> send_chunked(200)
       |> chunk(preamble(entrypoint))
 
-    loader_data = get_loader_data(opts, conn)
+    loader_data = loader.()
     {:ok, conn} = conn |> chunk("#{js_payload("window.__provideLoaderData(#{loader_data});")}")
     {:ok, conn} = conn |> chunk("</html>")
     conn
   end
 
-  defp handle_navigation(conn, opts, _route) do
-    entrypoint = apply(opts, :entrypoint, [conn, conn.params])
+  defp handle_navigation(conn, pot, route),
+    do: handle_navigation(conn, pot, route, fn -> get_loader_data(pot, conn) end)
+
+  defp handle_navigation(conn, pot, _route, loader) do
+    entrypoint = apply(pot, :entrypoint, [conn, conn.params])
 
     navigation_preamble =
       Phoenix.json_library().encode!(%{
@@ -45,7 +63,7 @@ defmodule Pot.Plug do
       |> put_resp_content_type("application/json")
       |> send_chunked(200)
 
-    loader_data = get_loader_data(opts, conn)
+    loader_data = loader.()
     {:ok, conn} = conn |> chunk(loader_data)
 
     conn

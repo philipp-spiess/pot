@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Link } from "./pot/Router";
 
+let counter = 0;
 export default function Nav() {
+  const [count] = useState(() => counter++);
   return (
     <nav style={{ background: "#c7d2fe", marginBottom: "10px" }}>
       <ol
@@ -24,6 +27,8 @@ export default function Nav() {
         <li>
           <Link to="/items">Outside pod 😡</Link>
         </li>
+
+        <li style={{ marginLeft: "auto" }}>Recreate count: {count}</li>
       </ol>
     </nav>
   );

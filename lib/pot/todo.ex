@@ -18,7 +18,7 @@ defmodule Pot.Todo do
 
   """
   def list_items do
-    Repo.all(Item)
+    Repo.all(from i in Item, order_by: [desc: i.id])
   end
 
   @doc """

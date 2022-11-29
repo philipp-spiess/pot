@@ -1,29 +1,46 @@
 defmodule PotWeb.ItemsPot do
   use Pot.Controller
 
-  # alias Pot.Todo
-  # alias Pot.Todo.Item
+  alias Pot.Todo
+
+  def action(_conn, %{"intent" => "delete", "id" => id}) do
+    item = Todo.get_item!(id)
+    {:ok, _item} = Todo.delete_item(item)
+    json(%{"items" => list_items()})
+  end
+
+  def action(_conn, %{"text" => text}) do
+    case Todo.create_item(%{"text" => text, "done" => false}) do
+      {:ok, _item} ->
+        json(%{"items" => list_items()})
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        json(%{
+          "errors" =>
+            changeset.errors
+            |> Enum.map(fn {field, {error, _rest}} -> %{field: field, error: error} end),
+          "items" => list_items()
+        })
+    end
+  end
 
   def loader_data(_conn, _params) do
-    Process.sleep(2000)
+    json(%{"items" => list_items()})
+  end
 
-    items =
-      Pot.Todo.list_items()
-      |> Enum.map(fn item ->
-        %{
-          "id" => item.id,
-          "done" => item.done,
-          "text" => item.text
-          # "insertedAt" => item.inserted_at,
-          # "updatedAt" => item.updated_at
-        }
-      end)
-
-    json(%{"items" => items})
+  defp list_items do
+    Pot.Todo.list_items()
+    |> Enum.map(fn item ->
+      %{
+        "id" => item.id,
+        "done" => item.done,
+        "text" => item.text
+      }
+    end)
   end
 
   def entrypoint(_conn, _params) do
-    ~j"item"
+    ~j"items"
   end
 
   # @impl true
