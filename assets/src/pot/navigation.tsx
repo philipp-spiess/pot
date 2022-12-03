@@ -58,7 +58,7 @@ export async function navigate(
       request = setSubmissionRequest(submission, request);
     }
     const response = await fetch(url.toString(), request);
-    if (!isCurrentRequest) {
+    if (!isCurrentRequest()) {
       return;
     }
 
@@ -93,7 +93,7 @@ Please use <Link to=\"${to}\" native /> instead.`);
     });
 
     const json = await response.json();
-    if (!isCurrentRequest) {
+    if (!isCurrentRequest()) {
       return;
     }
 

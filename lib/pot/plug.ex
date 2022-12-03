@@ -33,7 +33,6 @@ defmodule Pot.Plug do
 
     {:ok, conn} =
       conn
-      |> csrf_token()
       |> put_resp_content_type("text/html")
       |> send_chunked(200)
       |> chunk(preamble(entrypoint))
@@ -58,7 +57,6 @@ defmodule Pot.Plug do
 
     conn =
       conn
-      |> csrf_token()
       |> put_resp_header("x-pot-preamble", navigation_preamble)
       |> put_resp_content_type("application/json")
       |> send_chunked(200)
@@ -99,7 +97,6 @@ defmodule Pot.Plug do
     <body>
     <div id="app"></div>
     #{js_payload("window.__loadEntrypoint(\"#{entrypoint}\");")}
-    </script>
     """
   end
 
@@ -136,11 +133,4 @@ defmodule Pot.Plug do
   end
 
   defp is_prod(), do: env() == :prod
-
-  defp csrf_token(conn) do
-    csrf_token = Plug.CSRFProtection.get_csrf_token()
-
-    conn
-    |> put_resp_cookie("csrf-token", csrf_token, sign: false, same_site: "secure")
-  end
 end

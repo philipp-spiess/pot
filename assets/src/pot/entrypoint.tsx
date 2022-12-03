@@ -15,7 +15,12 @@ export function createEntrypoint(name: string): React.ComponentType {
   return React.lazy(() => importPromise);
 }
 
+const preloadedModules = new Set();
 export function preloadEntrypointModule(entrypointModule: string) {
+  if (preloadedModules.has(entrypointModule)) {
+    return;
+  }
+  preloadedModules.add(entrypointModule);
   const link = document.createElement("link");
   link.rel = "modulepreload";
   link.href = entrypointModule;
