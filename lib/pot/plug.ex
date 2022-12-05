@@ -1,35 +1,36 @@
 defmodule Pot.Plug do
   import Plug.Conn
 
-  def init(pot), do: pot
+  @spec init(full_path: String.t(), view: any) :: [full_path: String.t(), view: any]
+  def init(args), do: args
 
-  def call(%Plug.Conn{method: "POST"} = conn, pot), do: handle_action(conn, pot)
+  def call(%Plug.Conn{method: "POST"} = conn, args), do: handle_action(conn, args)
 
-  def call(%Plug.Conn{params: %{"_route" => route}} = conn, pot),
-    do: handle_navigation(conn, pot, route)
+  def call(%Plug.Conn{params: %{"_route" => route}} = conn, args),
+    do: handle_navigation(conn, args, route)
 
-  def call(conn, pot) do
+  def call(conn, args) do
     case get_req_header(conn, "x-pot-route") do
-      [route] -> handle_navigation(conn, pot, route)
-      _ -> handle_initial_load(conn, pot)
+      [route] -> handle_navigation(conn, args, route)
+      _ -> handle_initial_load(conn, args)
     end
   end
 
-  defp handle_action(conn, pot) do
+  defp handle_action(conn, args) do
     # Actions run their data loaders eagerly
-    loader_data = apply(pot, :action, [conn, conn.params])
+    loader_data = apply(args[:view], :action, [conn, conn.params])
 
     case get_req_header(conn, "x-pot-route") do
-      [route] -> handle_navigation(conn, pot, route, fn -> loader_data end)
-      _ -> handle_initial_load(conn, pot, fn -> loader_data end)
+      [route] -> handle_navigation(conn, args, route, fn -> loader_data end)
+      _ -> handle_initial_load(conn, args, fn -> loader_data end)
     end
   end
 
-  defp handle_initial_load(conn, pot),
-    do: handle_initial_load(conn, pot, fn -> get_loader_data(pot, conn) end)
+  defp handle_initial_load(conn, args),
+    do: handle_initial_load(conn, args, fn -> get_loader_data(args[:view], conn) end)
 
-  defp handle_initial_load(conn, pot, loader) do
-    entrypoint = apply(pot, :entrypoint, [conn, conn.params])
+  defp handle_initial_load(conn, args, loader) do
+    entrypoint = apply(args[:view], :entrypoint, [conn, conn.params])
 
     {:ok, conn} =
       conn
@@ -43,11 +44,11 @@ defmodule Pot.Plug do
     conn
   end
 
-  defp handle_navigation(conn, pot, route),
-    do: handle_navigation(conn, pot, route, fn -> get_loader_data(pot, conn) end)
+  defp handle_navigation(conn, args, route),
+    do: handle_navigation(conn, args, route, fn -> get_loader_data(args[:view], conn) end)
 
-  defp handle_navigation(conn, pot, _route, loader) do
-    entrypoint = apply(pot, :entrypoint, [conn, conn.params])
+  defp handle_navigation(conn, args, _route, loader) do
+    entrypoint = apply(args[:view], :entrypoint, [conn, conn.params])
 
     navigation_preamble =
       Phoenix.json_library().encode!(%{

@@ -10,13 +10,13 @@ export default function Nav() {
         style={{ listStyleType: "none", display: "flex", padding: 0, gap: 10 }}
       >
         <li>
-          <Link to="/">Home</Link>
+          <Link to="/pot">Home</Link>
         </li>
         <li>
-          <Link to="/admin">Admin</Link>
+          <Link to="/pot/admin">Admin</Link>
         </li>
         <li>
-          <Link to="/fast">Fast</Link>
+          <Link to="/pot/fast">Fast</Link>
         </li>
         <li>
           <Link to="/404">404</Link>

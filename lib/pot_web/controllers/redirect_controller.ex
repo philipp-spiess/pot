@@ -3,6 +3,6 @@ defmodule PotWeb.RedirectController do
 
   @spec index(Plug.Conn.t(), any) :: Plug.Conn.t()
   def index(conn, _params) do
-    redirect(conn, to: ~p"/admin")
+    redirect(conn, to: ~p"/pot/admin")
   end
 end

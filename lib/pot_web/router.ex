@@ -16,9 +16,13 @@ defmodule PotWeb.Router do
     get "/redirect", RedirectController, :index
 
     # Pot routes
-    pot "/", ItemsPot
-    pot "/admin", AdminPot
-    pot "/fast", FastPot
+    scope "/pot" do
+      pot "/", ItemsPot
+      pot "/admin", AdminPot
+      pot "/fast", FastPot
+
+      pot "/:id", ItemPot
+    end
 
     # LiveView routes
     live "/items", ItemLive.Index, :index

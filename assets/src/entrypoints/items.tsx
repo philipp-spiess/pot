@@ -1,5 +1,5 @@
 import Nav from "../Nav";
-import { Form, useLoaderData } from "../pot/react";
+import { Form, Link, useLoaderData } from "../pot/react";
 interface LoaderData {
   items: Array<{ id: number; done: boolean; text: string }>;
   errors?: Array<{ field: string; error: string }>;
@@ -45,6 +45,12 @@ export default function Items() {
                     item.done ? "line-through" : ""
                   }`}
                 >
+                  <Link
+                    to={`/pot/${item.id}`}
+                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                  >
+                    {item.id}.{" "}
+                  </Link>
                   {item.text}
                 </p>
 
