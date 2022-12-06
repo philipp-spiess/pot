@@ -15,8 +15,15 @@ defmodule PotWeb.Router do
 
     get "/redirect", RedirectController, :index
 
+    pot_layout Layout
     # Pot routes
     scope "/pot" do
+      pot_layout Layout
+
+      scope "/items" do
+        pot_layout Layout
+      end
+
       pot "/", ItemsPot
       pot "/admin", AdminPot
       pot "/fast", FastPot

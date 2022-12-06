@@ -30,6 +30,8 @@ defmodule Pot.Plug do
     do: handle_initial_load(conn, args, fn -> get_loader_data(args[:view], conn) end)
 
   defp handle_initial_load(conn, args, loader) do
+    _layouts = layouts(args)
+
     entrypoint = apply(args[:view], :entrypoint, [conn, conn.params])
 
     {:ok, conn} =
@@ -44,10 +46,13 @@ defmodule Pot.Plug do
     conn
   end
 
-  defp handle_navigation(conn, args, route),
-    do: handle_navigation(conn, args, route, fn -> get_loader_data(args[:view], conn) end)
+  defp handle_navigation(conn, args, previous_route),
+    do:
+      handle_navigation(conn, args, previous_route, fn -> get_loader_data(args[:view], conn) end)
 
-  defp handle_navigation(conn, args, _route, loader) do
+  defp handle_navigation(conn, args, previous_route, loader) do
+    _layouts = layouts(args, previous_route)
+
     entrypoint = apply(args[:view], :entrypoint, [conn, conn.params])
 
     navigation_preamble =
@@ -134,4 +139,35 @@ defmodule Pot.Plug do
   end
 
   defp is_prod(), do: env() == :prod
+
+  # Computes the layouts that are needed to render the page. Based on the
+  # previous_path, it will decide which layouts need to have their data reloaded.
+  defp layouts(args, previous_path \\ "") do
+    all_layouts =
+      args[:layouts]
+      |> Enum.map(fn layout ->
+        Map.put(layout, :path, layout[:full_path] |> String.split("/") |> Enum.drop(1))
+      end)
+
+    previous_path = previous_path |> String.split("/") |> Enum.drop(1)
+    current_path = args[:full_path] |> String.split("/") |> Enum.drop(1)
+
+    all_layouts
+    |> Enum.flat_map(fn layout ->
+      if List.starts_with?(current_path, layout.path) do
+        # TODO: Remix reloads layout data in those cases:
+        #
+        # - if the url.search changes (while the url.pathname is the same)
+        # - after actions are called
+        # - "refresh" link clicks (click link to same URL)
+        #
+        # https://remix.run/docs/en/v1/api/conventions#unstable_shouldreload
+        should_load = !List.starts_with?(previous_path, layout.path) or length(previous_path) == 0
+
+        [Map.put(layout, :should_load, should_load)]
+      else
+        []
+      end
+    end)
+  end
 end
