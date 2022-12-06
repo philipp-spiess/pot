@@ -21,7 +21,10 @@ defmodule Pot.Plug do
     loader_data = apply(args[:view], :action, [conn, conn.params])
 
     case get_req_header(conn, "x-pot-route") do
-      [route] -> handle_navigation(conn, args, route, fn -> loader_data end)
+      # We deliberately do not pass the route data forward. The route data is
+      # used to find out which layouts to reload wne when an action is
+      # processed, all of them should be reloaded
+      [_route] -> handle_navigation(conn, args, "", fn -> loader_data end)
       _ -> handle_initial_load(conn, args, fn -> loader_data end)
     end
   end
@@ -29,19 +32,20 @@ defmodule Pot.Plug do
   defp handle_initial_load(conn, args),
     do: handle_initial_load(conn, args, fn -> get_loader_data(args[:view], conn) end)
 
-  defp handle_initial_load(conn, args, loader) do
-    _layouts = layouts(args)
+  defp handle_initial_load(conn, args, route_loader) do
+    layouts = route_layouts(args)
 
-    entrypoint = apply(args[:view], :entrypoint, [conn, conn.params])
+    entrypoints = prepare_entrypoints(args, layouts)
 
     {:ok, conn} =
       conn
       |> put_resp_content_type("text/html")
       |> send_chunked(200)
-      |> chunk(preamble(entrypoint))
+      |> chunk(initial_load_preamble(entrypoints))
 
-    loader_data = loader.()
+    loader_data = prepare_loader_data(args[:full_path], route_loader, layouts, conn)
     {:ok, conn} = conn |> chunk("#{js_payload("window.__provideLoaderData(#{loader_data});")}")
+
     {:ok, conn} = conn |> chunk("</html>")
     conn
   end
@@ -50,16 +54,12 @@ defmodule Pot.Plug do
     do:
       handle_navigation(conn, args, previous_route, fn -> get_loader_data(args[:view], conn) end)
 
-  defp handle_navigation(conn, args, previous_route, loader) do
-    _layouts = layouts(args, previous_route)
+  defp handle_navigation(conn, args, previous_route, route_loader) do
+    layouts = route_layouts(args, previous_route)
 
-    entrypoint = apply(args[:view], :entrypoint, [conn, conn.params])
+    entrypoints = prepare_entrypoints(args, layouts)
 
-    navigation_preamble =
-      Phoenix.json_library().encode!(%{
-        entrypoint: entrypoint,
-        entrypointModule: module_path_for_entrypoint(entrypoint)
-      })
+    navigation_preamble = Phoenix.json_library().encode!(entrypoints)
 
     conn =
       conn
@@ -67,13 +67,15 @@ defmodule Pot.Plug do
       |> put_resp_content_type("application/json")
       |> send_chunked(200)
 
-    loader_data = loader.()
+    loader_data = prepare_loader_data(args[:full_path], route_loader, layouts, conn)
     {:ok, conn} = conn |> chunk(loader_data)
 
     conn
   end
 
-  defp preamble(entrypoint) do
+  defp initial_load_preamble(entrypoints) do
+    layouts_json = Phoenix.json_library().encode!(entrypoints)
+
     ~s"""
     <html><head>
     <meta name="csrf-token" content="#{Plug.CSRFProtection.get_csrf_token()}" />
@@ -94,21 +96,28 @@ defmodule Pot.Plug do
       </script>
       <link rel="modulepreload" href="#{Vite.Dev.url()}@vite/client" />
       <link rel="modulepreload" href="#{Vite.Dev.url()}src/pot/init.tsx" />
-      <link rel="modulepreload" href="#{module_path_for_entrypoint(entrypoint)}" />
       <script type="module" src="#{Vite.Dev.url()}@vite/client" async></script>
       <script type="module" src="#{Vite.Dev.url()}src/pot/init.tsx" async></script>
       """
     end}
+
+    #{Enum.map(entrypoints, fn entrypoint -> ~s"""
+        <link rel="modulepreload" href="#{entrypoint[:module]}" />
+      """ end)}
+
     </head>
     <body>
     <div id="app"></div>
-    #{js_payload("window.__loadEntrypoint(\"#{entrypoint}\");")}
+    #{js_payload("window.__loadEntrypoints(#{layouts_json})")}
     """
   end
 
   defp module_path_for_entrypoint(entrypoint) do
-    # TODO: Must be different in production (need to look into the Vite manifest)
-    "#{Vite.Dev.url()}src/entrypoints/#{entrypoint}.tsx"
+    if is_prod() do
+      raise "Must be different in production (need to look into the Vite manifest)"
+    else
+      "#{Vite.Dev.url()}src/entrypoints/#{entrypoint}.tsx"
+    end
   end
 
   defp js_payload(javascript) do
@@ -118,7 +127,7 @@ defmodule Pot.Plug do
       #{javascript}
     }
 
-    if (window.__loadEntrypoint) { init(); }
+    if (window.__loadEntrypoints) { init(); }
     else { window.__runMe ? window.__runMe.push(init) : window.__runMe = [init]; }
     </script>
     """
@@ -142,7 +151,7 @@ defmodule Pot.Plug do
 
   # Computes the layouts that are needed to render the page. Based on the
   # previous_path, it will decide which layouts need to have their data reloaded.
-  defp layouts(args, previous_path \\ "") do
+  defp route_layouts(args, previous_path \\ "") do
     all_layouts =
       args[:layouts]
       |> Enum.map(fn layout ->
@@ -162,12 +171,56 @@ defmodule Pot.Plug do
         # - "refresh" link clicks (click link to same URL)
         #
         # https://remix.run/docs/en/v1/api/conventions#unstable_shouldreload
-        should_load = !List.starts_with?(previous_path, layout.path) or length(previous_path) == 0
-
-        [Map.put(layout, :should_load, should_load)]
+        reload = !List.starts_with?(previous_path, layout.path) or length(previous_path) == 0
+        [Map.put(layout, :reload, reload)]
       else
         []
       end
     end)
+    |> Enum.reverse()
+  end
+
+  defp prepare_entrypoints(args, layouts) do
+    entrypoint = apply(args[:view], :entrypoint, [])
+
+    route_entrypoint = %{
+      path: args[:full_path],
+      entrypoint: entrypoint,
+      module: module_path_for_entrypoint(entrypoint),
+      reload: true,
+      current: true
+    }
+
+    layout_entrypoints =
+      layouts
+      |> Enum.map(fn layout ->
+        entrypoint = apply(layout[:view], :entrypoint, [])
+
+        %{
+          path: layout[:full_path],
+          entrypoint: entrypoint,
+          module: module_path_for_entrypoint(entrypoint),
+          reload: layout[:reload]
+        }
+      end)
+
+    [route_entrypoint | layout_entrypoints]
+  end
+
+  # TODO: How can we make it so that the loaders run in parallel?
+  defp prepare_loader_data(route_path, route_loader, layouts, conn) do
+    layout_loader_data =
+      layouts
+      |> Enum.map(fn layout ->
+        if layout.reload do
+          %{path: layout[:full_path], data: get_loader_data(layout[:view], conn)}
+        else
+          %{path: layout[:full_path]}
+        end
+      end)
+
+    route_loader_data = %{path: route_path, current: true, data: route_loader.()}
+
+    Phoenix.json_library().encode!([route_loader_data | layout_loader_data])
   end
 end

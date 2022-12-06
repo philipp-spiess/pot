@@ -1,19 +1,17 @@
 import { createContext, useContext, useLayoutEffect, useRef } from "react";
 
 interface LoaderDataContextType<T> {
-  isLoading: boolean;
-  data: T;
+  data: null | T;
   subscribers: Array<(data: T) => void>;
 }
 export const LoaderDataContext = createContext<LoaderDataContextType<any>>({
-  isLoading: true,
   data: null,
   subscribers: [],
 });
 export function useLoaderData<T>(): T {
   const ref = useRef<null | Promise<T>>(null);
   const data = useContext(LoaderDataContext);
-  if (!data.isLoading) {
+  if (data.data !== null) {
     return data.data as T;
   } else if (ref.current) {
     throw ref.current;
@@ -25,27 +23,31 @@ export function useLoaderData<T>(): T {
   }
 }
 export function ProvideLoaderData<T>(props: {
-  isLoading: boolean;
   data: T;
   children: React.ReactNode;
 }) {
   const data = useRef<LoaderDataContextType<T>>({
-    isLoading: false,
     data: props.data,
     subscribers: [],
   });
 
   // 😈
-  if (
-    data.current.isLoading !== props.isLoading ||
-    data.current.data !== props.data
-  ) {
-    data.current.subscribers.forEach((resolve) => resolve(props.data));
-    data.current = {
-      isLoading: props.isLoading,
-      data: props.data,
-      subscribers: [],
-    };
+  if (data.current.data !== props.data) {
+    if (props.data !== null) {
+      data.current.subscribers.forEach((resolve) => resolve(props.data));
+      data.current = {
+        data: props.data,
+        subscribers: [],
+      };
+    } else {
+      // We need to re-suspend. All current subscribers can stay subscribed but
+      // we have to create a new context value to trigger re-renders.
+      const subscribers = data.current.subscribers;
+      data.current = {
+        data: null,
+        subscribers,
+      };
+    }
   }
 
   return (

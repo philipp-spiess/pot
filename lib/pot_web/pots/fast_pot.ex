@@ -4,7 +4,7 @@ defmodule PotWeb.FastPot do
   def loader_data(_conn, _params) do
   end
 
-  def entrypoint(_conn, _params) do
+  def entrypoint() do
     ~j"fast"
   end
 end

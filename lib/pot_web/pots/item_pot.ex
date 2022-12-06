@@ -13,7 +13,7 @@ defmodule PotWeb.ItemPot do
     })
   end
 
-  def entrypoint(_conn, _params) do
+  def entrypoint() do
     ~j"item"
   end
 end

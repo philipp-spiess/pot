@@ -1,5 +1,6 @@
 import { startTransition } from "react";
 import { createEntrypoint, preloadEntrypointModule } from "./entrypoint";
+import { RawData, RawEntrypoints } from "./init";
 import { getUrl, RouterContextType } from "./Router";
 
 interface Submission {
@@ -7,10 +8,8 @@ interface Submission {
   formData: FormData;
 }
 
-interface NavigationPreamble {
-  entrypointModule: string;
-  entrypoint: string;
-}
+type NavigationPreamble = RawEntrypoints;
+type NavigationData = RawData;
 
 export async function navigate(
   to: string,
@@ -84,21 +83,22 @@ Please use <Link to=\"${to}\" native /> instead.`);
       return;
     }
 
-    const preamble: NavigationPreamble = JSON.parse(rawPreamble);
-    preloadEntrypointModule(preamble.entrypointModule);
+    const entrypoints: NavigationPreamble = JSON.parse(rawPreamble);
+    for (const entrypoint of entrypoints) {
+      preloadEntrypointModule(entrypoint.module);
+    }
 
-    const entrypoint = createEntrypoint(preamble.entrypoint);
     startTransition(() => {
-      window.__rerender && window.__rerender(entrypoint, true, null);
+      window.__loadEntrypoints && window.__loadEntrypoints(entrypoints);
     });
 
-    const json = await response.json();
+    const data: RawData = await response.json();
     if (!isCurrentRequest()) {
       return;
     }
 
     startTransition(() => {
-      window.__rerender && window.__rerender(entrypoint, false, json);
+      window.__provideLoaderData && window.__provideLoaderData(data);
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {

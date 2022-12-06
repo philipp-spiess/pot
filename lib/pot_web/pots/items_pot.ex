@@ -39,7 +39,7 @@ defmodule PotWeb.ItemsPot do
     end)
   end
 
-  def entrypoint(_conn, _params) do
+  def entrypoint() do
     ~j"items"
   end
 end

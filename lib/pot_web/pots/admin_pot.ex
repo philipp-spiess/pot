@@ -7,7 +7,7 @@ defmodule PotWeb.AdminPot do
     json(%{"topSecretPassword" => "s3cr3t"})
   end
 
-  def entrypoint(_conn, _params) do
+  def entrypoint() do
     ~j"admin"
   end
 end

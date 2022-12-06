@@ -3,15 +3,15 @@ import { useLoaderData } from "../pot/react";
 
 interface LoaderData {
   user: string;
+  serverTime: string;
 }
 
-export default function Items(props: { children: React.ReactNode }) {
+export default function Layout(props: { children: React.ReactNode }) {
   const data = useLoaderData<LoaderData>();
   return (
-    <>
-      {JSON.stringify(data, null, 2)}
-      <Nav />
+    <div>
+      <Nav user={data.user} serverTime={data.serverTime} />
       {props.children}
-    </>
+    </div>
   );
 }
